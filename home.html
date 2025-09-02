@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MIS Service Portal</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="home.css">
+</head>
+<body>
+  <div class="card">
+    <img src="mislogo.png" alt="Company Logo" class="logo">
+    <h2 class="card-title">MIS Service Portal</h2>
+
+    <div class="toggle-buttons">
+      <button id="btn-login" class="active">Login</button>
+      <button id="btn-register">Register</button>
+    </div>
+
+    <!-- Login Form -->
+    <form id="login-form" class="active">
+      <div class="form-group">
+        <label for="login-email">Email</label>
+        <input type="email" id="login-email" placeholder="Enter your email" required>
+      </div>
+      <div class="form-group">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" placeholder="********" required>
+      </div>
+      <button type="submit" class="btn-primary">Log in</button>
+      <p id="login-message" class="message"></p>
+    </form>
+
+    <!-- Register Form -->
+    <form id="register-form">
+      <div class="form-group">
+        <label for="register-name">Full name</label>
+        <input type="text" id="register-name" placeholder="Enter your full name" required>
+      </div>
+      <div class="form-group">
+        <label for="register-email">Email</label>
+        <input type="email" id="register-email" placeholder="Enter your email" required>
+      </div>
+      <div class="form-group">
+        <label for="register-password">Password</label>
+        <input type="password" id="register-password" placeholder="********" required>
+      </div>
+      <div class="form-group">
+        <label for="register-phone">Phone Number</label>
+        <input type="text" id="register-phone" placeholder="Enter phone number">
+      </div>
+      <div class="form-group">
+        <label for="register-department">Department</label>
+        <select id="register-department" required>
+          <option value="">Loading...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="register-role">Role</label>
+        <select id="register-role" required>
+          <option value="">Loading...</option>
+        </select>
+      </div>
+      <button type="submit" class="btn-primary">Register</button>
+      <p id="register-message" class="message"></p>
+    </form>
+  </div>
+  <footer class="footer">
+    &copy; 2025 Developed by Razan Almahdi.
+  </footer>
+</body>
+</html>
+
+<script>
+const SUPABASE_URL = "https://iwxrosurmridovzmbtcb.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3eHJvc3VybXJpZG92em1idGNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMDY5MTMsImV4cCI6MjA3MTY4MjkxM30.NcI8a_WuxIYe8MSFKpS6B4lrei0UYmEHk_z24K9FLOM";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Toggle login/register
+const btnLogin = document.getElementById("btn-login");
+const btnRegister = document.getElementById("btn-register");
+const loginForm = document.getElementById("login-form");
+const registerForm = document.getElementById("register-form");
+
+btnLogin.addEventListener("click", () => {
+  loginForm.classList.add("active");
+  registerForm.classList.remove("active");
+  btnLogin.classList.add("active");
+  btnRegister.classList.remove("active");
+});
+
+btnRegister.addEventListener("click", () => {
+  registerForm.classList.add("active");
+  loginForm.classList.remove("active");
+  btnRegister.classList.add("active");
+  btnLogin.classList.remove("active");
+});
+
+// --- Additions: Validation helpers ---
+function validateEmailDomain(email) {
+  return /^[a-zA-Z0-9._%+-]+@mis\.com\.sa$/.test(email);
+}
+
+function validatePasswordStrength(password) {
+  return /^(?=.*[0-9])(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]).{8,}$/.test(password);
+}
+
+// Login handler
+document.getElementById("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = document.getElementById("login-email").value;
+  const password = document.getElementById("login-password").value;
+
+  // --- Added: validation for login email domain ---
+  if (!validateEmailDomain(email)) {
+    document.getElementById("login-message").textContent = "Use your company email (@mis.com.sa)";
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("users")
+    .select("id, full_name, roles(*)")
+    .eq("email", email)
+    .eq("password", password)
+    .single();
+  const msg = document.getElementById("login-message");
+  if (error || !data) {
+    msg.textContent = "Account doesn’t exist or wrong credentials.";
+    return;
+  }
+  localStorage.setItem("user_id", data.id);
+  localStorage.setItem("user_name", data.full_name);
+  msg.style.color = "green";
+  msg.textContent = "Login successful! Redirecting...";
+  setTimeout(() => {
+    const roleName = ((data.roles?.role_name || "").trim()).toLowerCase();
+    switch(roleName){
+      case "engineer": window.location.href="engineer-dashboard.html"; break;
+      case "project manager": case "pm": window.location.href="pm-dashboard.html"; break;
+      case "team leader": case "tl": window.location.href="tl-dashboard.html"; break;
+      default: alert("No dashboard defined for role: "+roleName);
+    }
+  }, 500);
+});
+
+// Register handler
+document.getElementById("register-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  let full_name = document.getElementById("register-name").value;
+  let email = document.getElementById("register-email").value;
+  let password = document.getElementById("register-password").value;
+  let phone = document.getElementById("register-phone").value.replace(/\D/g, "");
+  const department_id = document.getElementById("register-department").value;
+  const role_id = document.getElementById("register-role").value;
+
+  // --- Added: email + password validation ---
+  if (!validateEmailDomain(email)) {
+    alert("Email must end with @mis.com.sa");
+    return;
+  }
+  if (!validatePasswordStrength(password)) {
+    alert("Password must be at least 8 characters, include one number and one symbol.");
+    return;
+  }
+  if(phone.length !== 10){ 
+    alert("Phone number must be exactly 10 digits."); 
+    return; 
+  }
+
+  const { error } = await supabase.from("users").insert([
+    { full_name, email, password, phone_number: phone, department_id, role_id }
+  ]);
+  if(error){ 
+    alert("Error registering user: "+error.message); 
+    return; 
+  }
+  alert("User registered successfully!");
+  document.getElementById("register-form").reset();
+});
+
+// Populate dropdowns
+async function loadDropdowns() {
+  const { data: departments, error: depError } = await supabase.from("departments").select("*");
+  const { data: roles, error: roleError } = await supabase.from("roles").select("*");
+  if (depError) console.error(depError);
+  if (roleError) console.error(roleError);
+
+  const deptSelect = document.getElementById("register-department");
+  deptSelect.innerHTML = '<option value="">Select a Department</option>';
+  departments?.forEach(d => {
+    deptSelect.innerHTML += `<option value="${d.id}">${d.name || d.department_name}</option>`;
+  });
+
+  const roleSelect = document.getElementById("register-role");
+  roleSelect.innerHTML = '<option value="">Select a Role</option>';
+  roles?.forEach(r => {
+    roleSelect.innerHTML += `<option value="${r.id}">${r.name || r.role_name}</option>`;
+  });
+}
+
+// Login handler
+document.getElementById("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = document.getElementById("login-email").value;
+  const password = document.getElementById("login-password").value;
+  const { data, error } = await supabase
+    .from("users")
+    .select("id, full_name, roles(*)")
+    .eq("email", email)
+    .eq("password", password)
+    .single();
+  const msg = document.getElementById("login-message");
+  if (error || !data) {
+    msg.textContent = "Account doesn’t exist or wrong credentials.";
+    return;
+  }
+  localStorage.setItem("user_id", data.id);
+  localStorage.setItem("user_name", data.full_name);
+  msg.style.color = "green";
+  msg.textContent = "Login successful! Redirecting...";
+  setTimeout(() => {
+    const roleName = ((data.roles?.role_name || "").trim()).toLowerCase();
+    switch(roleName){
+      case "engineer": window.location.href="engineer-dashboard.html"; break;
+      case "project manager": case "pm": window.location.href="pm-dashboard.html"; break;
+      case "team leader": case "tl": window.location.href="tl-dashboard.html"; break;
+      default: alert("No dashboard defined for role: "+roleName);
+    }
+  }, 500);
+});
+
+// Register handler
+document.getElementById("register-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  let full_name = document.getElementById("register-name").value;
+  let email = document.getElementById("register-email").value;
+  let password = document.getElementById("register-password").value;
+  let phone = document.getElementById("register-phone").value.replace(/\D/g, "");
+  const department_id = document.getElementById("register-department").value;
+  const role_id = document.getElementById("register-role").value;
+  if(phone.length !== 10){ alert("Phone number must be exactly 10 digits."); return; }
+  const { error } = await supabase.from("users").insert([{ full_name, email, password, phone_number: phone, department_id, role_id }]);
+  if(error){ alert("Error registering user: "+error.message); return; }
+  alert("User registered successfully!");
+  document.getElementById("register-form").reset();
+});
+
+// Initialize dropdowns
+loadDropdowns();
+</script>
+
+</body>
+
+</html>
