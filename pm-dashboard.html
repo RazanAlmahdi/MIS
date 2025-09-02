@@ -307,12 +307,12 @@ form.addEventListener('submit', async e => {
 document.getElementById('logout-btn').addEventListener('click', () => {
     localStorage.removeItem('user_id');
     localStorage.removeItem('user_name');
-    window.location.href = 'home.html';
+    window.location.href = 'index.html';
 });
 
 // --- Redirect if not logged in ---
 document.addEventListener('DOMContentLoaded', async () => {
-    if (!localStorage.getItem('user_id')) window.location.href = 'home.html';
+    if (!localStorage.getItem('user_id')) window.location.href = 'index.html';
     await showLoggedInUser();
     await fetchDepartments();
     await fetchServices();
@@ -326,3 +326,4 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 </body>
 </html>
+
